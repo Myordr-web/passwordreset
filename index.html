@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reset Password | MyOrdr</title>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@10.0.1"></script>
+</head>
+<body>
+  <h1>Reset Your Password</h1>
+  <form id="reset-form">
+    <input type="password" id="new-password" placeholder="New Password" required />
+    <button type="submit">Reset Password</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    const client = new Appwrite.Client()
+      .setEndpoint("https://console.myordr.co/v1") // ✅ Replace with your Appwrite API endpoint
+      .setProject("YOUR_PROJECT_ID"); // 🔑 Replace with your Appwrite project ID
+
+    const account = new Appwrite.Account(client);
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const secret = urlParams.get('secret');
+
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('new-password').value;
+
+      try {
+        await account.updateRecovery(userId, secret, password);
+        document.getElementById('status').innerText = "✅ Password reset successful!";
+      } catch (err) {
+        document.getElementById('status').innerText = "❌ Reset failed: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
