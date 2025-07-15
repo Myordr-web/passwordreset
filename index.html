@@ -3,16 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reset Your Password | Myordr</title>
-  <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID">
-  <script src="https://cdn.jsdelivr.net/npm/appwrite@10.0.1"></script>
+  <title>Reset Password – MyOrdr</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: #FFFFFF;
@@ -27,7 +19,7 @@
     }
 
     .logo {
-      max-width: 280px;
+      max-width: 220px;
       height: auto;
       margin-bottom: 30px;
     }
@@ -35,84 +27,137 @@
     .title {
       font-size: 28px;
       font-weight: bold;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
     .subtitle {
-      font-size: 17px;
+      font-size: 16px;
       color: #444;
-      margin-bottom: 30px;
+      margin-bottom: 25px;
       max-width: 420px;
     }
 
-    .form {
-      max-width: 360px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .form input {
+    input {
       padding: 12px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 16px;
+      width: 100%;
+      max-width: 360px;
+      margin: 6px auto;
     }
 
-    .form button {
+    button {
       background-color: #3A6B6B;
       color: white;
-      padding: 14px 28px;
+      padding: 12px 24px;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 12px;
     }
 
-    .form button:hover {
+    button:hover {
       background-color: #2d5555;
     }
 
-    #status {
+    #resultMessage {
       margin-top: 20px;
-      font-weight: 500;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <img src="Myordr_logo.png" alt="Myordr Logo" class="logo" />
-
   <div class="title">Reset Your Password</div>
-  <div class="subtitle">Enter your new password to complete the reset process.</div>
+  <div class="subtitle" id="page-description">
+    Enter your email to receive a password reset link.
+  </div>
 
-  <form id="reset-form" class="form">
-    <input type="password" id="new-password" placeholder="New Password" required />
-    <button type="submit">Reset Password</button>
+  <!-- Email Request Form -->
+  <form id="requestForm" style="display: none;">
+    <input type="email" id="emailInput" placeholder="you@example.com" required />
+    <br/>
+    <button type="submit">Send Reset Link</button>
   </form>
 
-  <p id="status"></p>
+  <!-- Password Reset Form -->
+  <form id="resetForm" style="display: none;">
+    <input type="password" id="newPassword" placeholder="New password" required />
+    <br/>
+    <button type="submit">Set New Password</button>
+  </form>
 
-  <script>
-    const client = new Appwrite.Client()
-      .setEndpoint("https://api.myordr.co/v1")
-      .setProject("681d6be40038cff0f018");
+  <p id="resultMessage"></p>
 
-    const account = new Appwrite.Account(client);
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const secret = urlParams.get('secret');
+  <script type="module">
+    import { Client, Account } from "https://cdn.jsdelivr.net/npm/appwrite@11.0.1/+esm";
 
-    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+    const client = new Client()
+      .setEndpoint('https://api.myordr.co/v1')
+      .setProject('681d6be40038cff0f018');
+
+    const account = new Account(client);
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get("userId");
+    const secret = params.get("secret");
+
+    const requestForm = document.getElementById("requestForm");
+    const resetForm = document.getElementById("resetForm");
+    const pageDesc = document.getElementById("page-description");
+    const resultMessage = document.getElementById("resultMessage");
+
+    if (userId && secret) {
+      // Show password reset form
+      resetForm.style.display = "block";
+      pageDesc.textContent = "Enter your new password.";
+    } else {
+      // Show email request form
+      requestForm.style.display = "block";
+    }
+
+    // Handle email submission
+    requestForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const password = document.getElementById('new-password').value;
+      const email = document.getElementById("emailInput").value;
+      resultMessage.textContent = "Sending reset email...";
 
       try {
-        await account.updateRecovery(userId, secret, password);
-        document.getElementById('status').innerText = "✅ Password reset successful!";
+        const res = await fetch("https://api.myordr.co/trigger-reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          resultMessage.textContent = "✅ Reset email sent. Check your inbox.";
+          resultMessage.style.color = "green";
+        } else {
+          resultMessage.textContent = "⚠️ " + data.message;
+          resultMessage.style.color = "red";
+        }
       } catch (err) {
-        document.getElementById('status').innerText = "❌ Reset failed: " + err.message;
+        resultMessage.textContent = "❌ Error sending reset email.";
+        resultMessage.style.color = "red";
+      }
+    });
+
+    // Handle new password submission
+    resetForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newPassword = document.getElementById("newPassword").value;
+      resultMessage.textContent = "Resetting password...";
+
+      try {
+        await account.updateRecovery(userId, secret, newPassword);
+        resultMessage.textContent = "✅ Password updated successfully!";
+        resultMessage.style.color = "green";
+      } catch (err) {
+        console.error(err);
+        resultMessage.textContent = "❌ Could not reset password.";
+        resultMessage.style.color = "red";
       }
     });
   </script>
