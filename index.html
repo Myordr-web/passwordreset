@@ -81,8 +81,6 @@
   </style>
 </head>
 <body>
-// -   <!-- Existing code... -->
-// - 
   <img src="Myordr_logo.png" alt="Myordr Logo" class="logo" />
   <div class="title">Reset Your Password</div>
   <div class="subtitle" id="page-description">
@@ -100,7 +98,6 @@
   <!-- Password Reset Form -->
   <form id="resetForm" style="display: none;">
     <input type="password" id="newPassword" placeholder="New password" required minlength="8" />
-// -     <input type="password" id="confirmPassword" placeholder="Confirm new password" required minlength="8" />
     <br/>
     <button type="submit" id="resetButton">Set New Password</button>
     <div class="loading" id="resetLoading">Updating password...</div>
@@ -123,143 +120,89 @@
     const resetLoading = document.getElementById("resetLoading");
 
     if (userId && secret) {
-      // Show password reset form
       resetForm.style.display = "block";
       pageDesc.textContent = "Enter your new password.";
     } else {
-      // Show email request form
       requestForm.style.display = "block";
     }
 
-    // Handle email submission
     requestForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("emailInput").value;
-      
-      // Show loading state
       sendButton.disabled = true;
       sendLoading.style.display = "block";
       resultMessage.textContent = "";
 
       try {
-        // Call your Appwrite function
-        const response = await fetch("http://64.23.246.223/v1/functions/passwordreset/executions", {
+        const response = await fetch("https://api.myordr.co/v1/account/recovery", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-// -             "X-Appwrite-Project": "681d6be40038cff0f018"
             "X-Appwrite-Project": "6854b9730030373da68d"
           },
           body: JSON.stringify({
             email: email,
-            action: "send_reset_email"
+            url: "https://reset.myordr.co"
           })
         });
 
-        const result = await response.json();
-        console.log("Function response:", result);
-
-        if (response.ok && result.responseStatusCode === 200) {
-          const functionResponse = JSON.parse(result.responseBody);
-          
-          if (functionResponse.success) {
-// -             resultMessage.textContent = "Reset email sent! Check your inbox (and spam folder).";
-            resultMessage.textContent = "✅ Reset email sent! Check your inbox (and spam folder).";
-            resultMessage.style.color = "green";
-            requestForm.style.display = "none";
-          } else {
-// -             resultMessage.textContent = (functionResponse.message || "Failed to send reset email");
-            resultMessage.textContent = "⚠️ " + (functionResponse.message || "Failed to send reset email");
-            resultMessage.style.color = "red";
-          }
+        if (response.ok) {
+          resultMessage.textContent = "✅ Reset email sent! Check your inbox (and spam folder).";
+          resultMessage.style.color = "green";
+          requestForm.style.display = "none";
         } else {
-          console.error("Function error:", result);
-// -           resultMessage.textContent = "Server error occurred. Please try again.";
-          resultMessage.textContent = "❌ Server error occurred. Please try again.";
+          const error = await response.json();
+          resultMessage.textContent = "⚠️ " + (error.message || "Failed to send reset email");
           resultMessage.style.color = "red";
         }
       } catch (err) {
         console.error("Network error:", err);
-// -         resultMessage.textContent = "Network error. Please check your connection and try again.";
         resultMessage.textContent = "❌ Network error. Please check your connection and try again.";
         resultMessage.style.color = "red";
       } finally {
-        // Hide loading state
         sendButton.disabled = false;
         sendLoading.style.display = "none";
       }
     });
 
-    // Handle new password submission
     resetForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const newPassword = document.getElementById("newPassword").value;
-// -       const confirmPassword = document.getElementById("confirmPassword").value;
-      
-      // Show loading state
       resetButton.disabled = true;
       resetLoading.style.display = "block";
       resultMessage.textContent = "";
 
-// -       if (newPassword !== confirmPassword) {
-// -         resultMessage.textContent = "Passwords do not match.";
-// -         resultMessage.style.color = "red";
-// -         resetButton.disabled = false;
-// -         resetLoading.style.display = "none";
-// -         return;
-// -       }
-// - 
       try {
-        // Call your Appwrite function for password reset completion
-        const response = await fetch("http://64.23.246.223/v1/functions/passwordreset/executions", {
-          method: "POST",
+        const response = await fetch("https://api.myordr.co/v1/account/recovery", {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
-// -             "X-Appwrite-Project": "681d6be40038cff0f018"
             "X-Appwrite-Project": "6854b9730030373da68d"
           },
           body: JSON.stringify({
-            action: "reset_password",
             userId: userId,
             secret: secret,
             password: newPassword
           })
         });
 
-        const result = await response.json();
-        console.log("Reset response:", result);
-
-        if (response.ok && result.responseStatusCode === 200) {
-          const functionResponse = JSON.parse(result.responseBody);
-          
-          if (functionResponse.success) {
-// -             resultMessage.textContent = "Password updated successfully! You can now log in with your new password.";
-            resultMessage.textContent = "✅ Password updated successfully! You can now log in with your new password.";
-            resultMessage.style.color = "green";
-            resetForm.style.display = "none";
-            
-            // Try to open the app after 2 seconds
-            setTimeout(() => {
-              window.location.href = 'myordr://login';
-            }, 2000);
-          } else {
-// -             resultMessage.textContent = (functionResponse.message || "Failed to reset password");
-            resultMessage.textContent = "⚠️ " + (functionResponse.message || "Failed to reset password");
-            resultMessage.style.color = "red";
-          }
+        if (response.ok) {
+          resultMessage.textContent = "✅ Password updated successfully! You can now log in with your new password.";
+          resultMessage.style.color = "green";
+          resetForm.style.display = "none";
+          setTimeout(() => {
+            window.location.href = 'myordr://login';
+          }, 2000);
         } else {
-          console.error("Reset error:", result);
-// -           resultMessage.textContent = "Failed to reset password. Please try again.";
-          resultMessage.textContent = "❌ Failed to reset password. Please try again.";
+          const error = await response.json();
+          resultMessage.textContent = "⚠️ " + (error.message || "Failed to reset password");
           resultMessage.style.color = "red";
         }
       } catch (err) {
         console.error("Network error:", err);
-// -         resultMessage.textContent = "Network error. Please try again.";
         resultMessage.textContent = "❌ Network error. Please try again.";
         resultMessage.style.color = "red";
       } finally {
-        // Hide loading state
         resetButton.disabled = false;
         resetLoading.style.display = "none";
       }
